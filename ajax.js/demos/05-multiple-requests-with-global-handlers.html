@@ -87,7 +87,7 @@
 			// process request with id: 0, for success global handler call
 			Ajax.get(
 				// required - relative or absolute path
-				'data/301.php',
+				'data/books.json',
 				// not required, any structured data are automaticly stringified 
 				// by JSON.stringify() included in this library
 				{
@@ -106,9 +106,9 @@
 			);
 			
 			// process request with id: 1, for success global handler call
-			Ajax.post(
+			Ajax.get(
 				// required - relative or absolute path
-				'data/json.php',
+				'data/books.json',
 				// not required, any structured data are automaticly stringified 
 				// by JSON.stringify() included in this library
 				{
@@ -127,7 +127,7 @@
 			// process request with id: 2, for abort global handler call
 			var xhr = Ajax.get(
 				// required - relative or absolute path
-				'data/json.php',
+				'data/books.json',
 				// not required, any structured data are automaticly stringified 
 				// by JSON.stringify() included in this library
 				{
@@ -150,7 +150,7 @@
 			
 			// process request with id: 3, for error global handler call
 			Ajax.get(
-				'data/404.php',
+				'data/not-existing-file.json',
 				{ sleep: 5 },
 				function (data, statusCode, xhr, requestId, url, type) {
 					return;
