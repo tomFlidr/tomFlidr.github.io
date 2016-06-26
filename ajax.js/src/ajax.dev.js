@@ -2,6 +2,7 @@
  * Javascript Ajax
  * @author: Tom Flidr | tomflidr(at)gmail(dot)com
  * @url: https://github.com/tomFlidr/ajax.js
+ * @licence: https://github.com/tomFlidr/ajax.js/LICENCE
  * @version: 1.0
  * @date: 2015-10-11
  * @usage:
