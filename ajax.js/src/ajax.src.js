@@ -69,14 +69,16 @@ Ajax['prototype'] = {
 		scope.url = url || '';
 		scope.data = data || {};
 		scope.success = success || fn;
-		scope.type = (type === undefined ? '' : type).toLowerCase() || '';
+		scope.type = (type === undefined ? '' : type).toLowerCase() || 'auto';
 		scope.error = error || fn;
 		scope.headers = headers || {};
 		scope.async = typeof(async) == 'undefined' ? !0 : async;
 		scope.result = {
-			success: !0, 
+			success: !1, 
 			data: {}
 		};
+		scope.errorEvent = null;
+		scope.errorObject = null;
 		return scope;
 	},
 	_processRequest: function (method) {
@@ -102,7 +104,6 @@ Ajax['prototype'] = {
 		scope._completeUriAndGetParams('get');
 		scriptElm['setAttribute']('src', scope.url);
 		scope._callBeforeHandlers();
-		scope.result.success = !1;
 		if (scope.oldIe) {
 			scriptElm.attachEvent('onreadystatechange', scope._handlerProviderScriptRequestError());
 			scriptElm = headElm['insertAdjacentElement']('beforeEnd', scriptElm);
@@ -125,8 +126,8 @@ Ajax['prototype'] = {
 		scope.result.success = !0;
 		scope._handlerScriptRequestCleanUp();
 		scope.result.data = data;
+		scope.success(data, 200, null, scope.requestId, scope.url, scope.type);
 		scope._callSuccessHandlers();
-		scope.success(data);
 	},
 	_handlerProviderScriptRequestError: function () {
 		var scope = this,
@@ -134,7 +135,6 @@ Ajax['prototype'] = {
 		if (scope.oldIe) {
 			return function (e) {
 				e = e || window.event;
-				trace(scriptElm.readyState);
 				if (scriptElm.readyState == 'loaded' && !scope.result.success) {
 					scope._handlerScriptRequestError(e);
 				}
@@ -156,8 +156,8 @@ Ajax['prototype'] = {
 		scope._handlerScriptRequestCleanUp();
 		scope.errorEvent = e;
 		scope._logException();
+		scope.error('', 0, null, null, e, scope.requestId, scope.url, scope.type);
 		scope._callErrorHandlers();
-		scope.error(scope.url, scope.requestId, e);
 	},
 	_handlerScriptRequestCleanUp: function () {
 		var scope = this;
@@ -174,18 +174,21 @@ Ajax['prototype'] = {
 			paramsStr = scope._completeUriAndGetParams(method);
 		scope.requestId = Ajax._requestCounter++;
 		scope.xhr = scope._createXhrInstance();
+		scope._processXhrRequestAddListener();
 		scope.xhr['open'](method, scope.url, scope.async);
 		scope._setUpHeaders();
 		scope._callBeforeHandlers();
-		scope._processXhrRequestAddListener();
 		scope._processXhrRequestSend(method, paramsStr);
 		return scope;
 	},
 	_processXhrRequestAddListener: function () {
 		var scope = this,
+			xhr = scope.xhr,
 			eventName = 'readystatechange',
 			handler = function (e) {
-				scope._handlerXhrRequestReadyStatechange(e);
+				if (xhr['readyState'] == 4) {
+					scope._handlerXhrRequestReadyStatechange(e);
+				}
 			};
 		if (scope.oldIe) {
 			scope.xhr['attachEvent']('on'+eventName, handler);
@@ -195,9 +198,18 @@ Ajax['prototype'] = {
 	},
 	_handlerXhrRequestReadyStatechange: function (e) {
 		e = e || window.event,
-			scope = this;
-		if (scope.xhr['readyState'] == 4) {
-			scope._processResponse(e);
+			scope = this,
+			statusCode = scope.xhr['status'];
+		if (statusCode > 199 && statusCode < 300){
+			scope._processXhrResult();
+			scope._processXhrCallbacks();
+		} else if (statusCode === 0){
+			scope._callAbortHandlers();
+		} else {
+			scope.result.success = !1;
+			scope.errorEvent = e;
+			scope.errorObject = new Error('Http Status Code: ' + statusCode);
+			scope._processXhrCallbacks();
 		}
 	},
 	_processXhrRequestSend: function (method, paramsStr) {
@@ -208,55 +220,46 @@ Ajax['prototype'] = {
 			xhr['send'](paramsStr);
 		}
 	},
-	_processResponse: function (e) {
-		var scope = this, xhr = scope.xhr;
-		if (xhr['status'] == 200){
-			scope._processXhrResult();
-		} else if (xhr['status'] === 0){
-			scope._callAbortHandlers();
+	_processXhrCallbacks: function (e) {
+		var scope = this, 
+			xhr = scope.xhr,
+			args = [];
+		if (scope.result.success) {
+			args = [
+				scope.result.data, xhr['status'], xhr, 
+				scope.requestId, scope.url, scope.type
+			];
+			scope.success.apply(null, args);
+			scope._callSuccessHandlers();
 		} else {
-			scope.result.success = !0;
-			scope.errorEvent = e;
-			scope.errorObject = new Error('Http Status Code: ' + xhr['status']);
-			scope._logException();
+			args = [
+				xhr['responseText'], xhr['status'], xhr, 
+				scope.errorEvent, scope.errorObject, 
+				scope.requestId, scope.url, scope.type
+			];
+			scope.error.apply(null, args);
 			scope._callErrorHandlers();
+			scope._logException();
 		}
 	},
 	_processXhrResult: function () {
-		var scope = this,
-			xhr = scope.xhr;
-		if (scope.type.length === 0) scope._determinateTypeByContentTypeHeader();
-		// if parsing cause any error - call error handlers immediately
+		var scope = this;
+		if (scope.type == 'auto') scope._processXhrResultDeterminateType();
 		scope._processXhrResultByType();
-		// rest is only for successfully finished parsing:
-		if (scope.result.success) {
-			scope._callSuccessHandlers();
-			scope.success(
-				scope.result.data, 
-				xhr['status'], 
-				xhr
-			);
-		} else {
-			scope._callErrorHandlers();
-			scope.error(
-				xhr['responseText'], 
-				xhr['status'], 
-				xhr
-			);
-		}
 	},
 	_processXhrResultByType: function () {
 		var scope = this,
 			xhr = scope.xhr;
 		if (scope.type == 'json') {
-			scope._createResultJson();
+			scope._processXhrResultJson();
 		} else if (scope.type == 'xml' || scope.type == 'html') {
-			scope._createResultXml();
+			scope._processXhrResultXml();
 		} else if (scope.type == 'text') {
 			scope.result.data = xhr['responseText'];
+			scope.result.success = !0;
 		}
 	},
-	_determinateTypeByContentTypeHeader: function () {
+	_processXhrResultDeterminateType: function () {
 		var scope = this,
 			ctSubject = this._getSubjectPartContentHeader();
 		scope.type = 'text';
@@ -269,6 +272,35 @@ Ajax['prototype'] = {
 		} else if (ctSubject.indexOf('xml') > -1) {
 			// application/xml,text/xml,	application/xml-dtd,application/rss+xml,application/atom+xml,application/vnd.google-earth.kml+xml,model/vnd.collada+xml and much more...
 			scope.type = 'xml';
+		}
+	},
+	_processXhrResultJson: function () {
+		var win = window, scope = this;
+		try {
+			scope.result.data = (new Function('return '+scope.xhr['responseText']))();
+			scope.result.success = !0;
+		} catch (e) {
+			scope.errorObject = e;
+		}
+	},
+	_processXhrResultXml: function () {
+		var parser = {}, 
+			win = window, 
+			scope = this,
+			responseText = scope.xhr['responseText'],
+			DomParser = win['DOMParser'];
+		try {
+			if (DomParser) {
+				parser = new DomParser();
+				scope.result.data = parser['parseFromString'](responseText, "application/xml");
+			} else {
+				parser = new win['ActiveXObject']('Microsoft.XMLDOM');
+				parser['async'] = !1;
+				scope.result.data = parser['loadXML'](responseText);
+			}
+			scope.result.success = !0;
+		} catch (e) {
+			scope.errorObject = e;
 		}
 	},
 	_getSubjectPartContentHeader: function () {
@@ -284,37 +316,6 @@ Ajax['prototype'] = {
 		contentType = contentType.length > 0 ? contentType.toLowerCase() : '';
 		if (semicolPos > -1) contentType = contentType.substr(0, semicolPos);
 		return contentType;
-	},
-	_createResultJson: function () {
-		var win = window, scope = this;
-		try {
-			scope.result.data = (new Function('return '+scope.xhr['responseText']))();
-		} catch (e) {
-			scope.result.success = !0;
-			scope.errorObject = e;
-			scope._logException();
-		}
-	},
-	_createResultXml: function () {
-		var parser = {}, 
-			win = window, 
-			scope = this,
-			responseText = scope.xhr['responseText'],
-			DomParser = win['DOMParser'];
-		try {
-			if (DomParser) {
-				parser = new DomParser();
-				scope.result.data = parser['parseFromString'](responseText, "application/xml");
-			} else {
-				parser = new win['ActiveXObject']('Microsoft.XMLDOM');
-				parser['async'] = !1;
-				scope.result.data = parser['loadXML'](responseText);
-			}
-		} catch (e) {
-			scope.result.success = !0;
-			scope.errorObject = e;
-			scope._logException();
-		}
 	},
 	_createXhrInstance: function () {
 		var xhrInstance,
@@ -352,7 +353,7 @@ Ajax['prototype'] = {
 			delimPos = url.indexOf(delimiter),
 			method = method.toLowerCase();
 		if (method == 'get') {
-			scope.data._ = +new Date; // cache buster
+			scope.data['_'] = +new Date; // cache buster
 			dataStr = scope._completeDataString();
 			if (delimPos > -1) {
 				delimiter = (delimPos == url.length - 1) ? '' : '&';
@@ -428,7 +429,7 @@ Ajax['prototype'] = {
 		var scope = this,
 			xhr = scope.xhr,
 			data = scope.result.data;
-		this._callHandlers('success', scope.type == 'jsonp' ? [null, 200, data] : [xhr, xhr['status'], data]);
+		this._callHandlers('success', scope.type == 'jsonp' ? [data, 200, null] : [data, xhr['status'], xhr]);
 	},
 	_callAbortHandlers: function () {
 		var scope = this;
@@ -438,18 +439,16 @@ Ajax['prototype'] = {
 		var scope = this, xhr = scope.xhr;
 		this._callHandlers(
 			'error', 
-			scope.type == 'jsonp' ? [null, -1, '', scope.errorEvent] : [xhr, xhr['status'], xhr['responseText'], scope.errorObj]
+			scope.type == 'jsonp' ? ['', 0, null, null, scope.errorEvent] : [xhr['responseText'], xhr['status'], xhr, scope.errorObj, null]
 		);
 	},
-	_callHandlers: function (handlersKey, additionalArgs) {
+	_callHandlers: function (handlersKey, args) {
 		var handlers = Ajax['handlers'][handlersKey],
 			scope = this,
 			handler = function () {},
-			args = [scope.requestId, scope.url, scope.type];
-		for (var i = 0, l = additionalArgs.length; i < l; i += 1) {
-			args.push(additionalArgs[i]);
-		}
-		for (i = 0, l = handlers.length; i < l; i += 1) {
+			additionalArgs = [];
+		args.push(scope.requestId, scope.url, scope.type);
+		for (var i = 0, l = handlers.length; i < l; i += 1) {
 			handler = handlers[i];
 			if (typeof(handler) != 'function') continue;
 			handler.apply(null, args);

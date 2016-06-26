@@ -16,16 +16,42 @@
 	<h1>Javascript AJAX - Complete LOAD Example</h1>
 	<hr />
 	
-	<div id="result">
-		
-	</div>
-
+	<div id="result"></div>
 	<script type="text/javascript">
-		(function () {
-		
-			
-		
-		})();
+		var xhr = Ajax.load({
+			// required - relative or absolute path
+			url: 'data/json.php',
+			// not required, get by default
+			method: 'post',
+			// not required, any structured data are automaticly stringified 
+			// by JSON.stringify() included in this library
+			data: {
+				key1: "value1",
+				key2: [
+					"anything",
+						{"with": ["JSON", "structure"]}
+				]  
+			},
+			// not required, custom callback for success, data are automaticly 
+			// evaluated or parsed by type param or HTTP header
+			success: function (data, statusCode, xhr, requestId, url, type) {
+				// print data - beautiful indented output with third param
+				result.innerHTML = "<pre><code>Result data:\n" +  JSON.stringify(data, null, 4) + "</code></pre>";
+			},
+			// not required, possible values: JSON, JSONP, XML, HTML, TEXT, 
+			// if not set, data are parsed/evaluated by HTTP header
+			type: 'json',
+			// not required, custom callback for error
+			error: function (responseText, statusCode, xhr, requestId, url, type) {
+				console.log(arguments);
+			},
+			// not required, true by default
+			async: true,
+			// not required, http headers to overwrite before data are sended, empty object by default
+			headers: {
+				// 'Content-Type': 'multipart/form-data'
+			}
+		});
 	</script>
 	
 </body>

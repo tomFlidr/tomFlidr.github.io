@@ -16,16 +16,36 @@
 	<h1>Javascript AJAX - Basic POST Example</h1>
 	<hr />
 	
-	<div id="result">
-		
-	</div>
-
+	<div id="result"></div>
 	<script type="text/javascript">
-		(function () {
-		
-			
-		
-		})();
+		var xhr = Ajax.post(
+			// required - relative or absolute path
+			'data/xml.php',
+			// not required, any structured data are automaticly stringified 
+			// by JSON.stringify() included in this library
+			{
+				key1: "value1",
+				key2: [
+					"anything",
+					{"with": ["JSON", "structure"]}
+				]  
+			},
+			// not required, custom callback for success, data are automaticly 
+			// evaluated or parsed by type param or HTTP header
+			function (data, statusCode, xhr, requestId, url, type) {
+				// print xml root element object as string
+				result.innerHTML = "<pre><code>Result data:\n"
+					+ data.documentElement.outerHTML.replace(/\</g, '&lt;').replace(/\>/g, '&gt;') 
+					+ "</code></pre>";
+			},
+			// not required, possible values: JSON, JSONP, XML, HTML, TEXT, 
+			// if not set, data are parsed/evaluated by HTTP header
+			'xml',
+			// not required, custom callback for error
+			function (responseText, statusCode, xhr, requestId, url, type) {
+				console.log(arguments);
+			}
+		);
 	</script>
 	
 </body>
