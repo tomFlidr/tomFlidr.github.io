@@ -2,7 +2,7 @@
 <html lang="en-US">
 <head>
 	<meta charset="UTF-8" />
-	<title>Javascript AJAX - Basic GET Example</title>
+	<title>Javascript AJAX - Basic POST Example</title>
 	<style type="text/css">
 		.wait{cursor:wait !important;}
 		html,body{font-family:arial;height:100%;}
@@ -13,14 +13,14 @@
 </head>
 <body>
 
-	<h1>Javascript AJAX - Basic GET Example</h1>
+	<h1>Javascript AJAX - Basic POST Example</h1>
 	<hr />
 	
 	<div id="result"></div>
 	<script type="text/javascript">
-		var xhr = Ajax.get(
+		var xhr = Ajax.post(
 			// required - relative or absolute path
-			'data/json.php',
+			'data/xml.php',
 			// not required, any structured data are automaticly stringified 
 			// by JSON.stringify() included in this library
 			{
@@ -33,12 +33,14 @@
 			// not required, custom callback for success, data are automaticly 
 			// evaluated or parsed by type param or HTTP header
 			function (data, statusCode, xhr, requestId, url, type) {
-				// print data - beautiful indented output with third param
-				result.innerHTML = "<pre><code>Result data:\n" +  JSON.stringify(data, null, 4) + "</code></pre>";
+				// print xml root element object as string
+				result.innerHTML = "<pre><code>Result data:\n"
+					+ data.documentElement.outerHTML.replace(/\</g, '&lt;').replace(/\>/g, '&gt;') 
+					+ "</code></pre>";
 			},
 			// not required, possible values: JSON, JSONP, XML, HTML, TEXT, 
 			// if not set, data are parsed/evaluated by HTTP header
-			'json',
+			'xml',
 			// not required, custom callback for error
 			function (responseText, statusCode, xhr, requestId, url, type) {
 				console.log(arguments);

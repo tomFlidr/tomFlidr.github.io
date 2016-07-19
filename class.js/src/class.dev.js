@@ -1,8 +1,8 @@
-/**
+﻿/**
  * Javascript Class Helper
  * @author Tom Flidr | tomflidr(at)gmail(dot)com
- * @version 1.0
- * @date 2016-07-15
+ * @version 1.3
+ * @date 2016-07-19
  * @usage
 
 var ClassName = Class({
@@ -36,11 +36,17 @@ Class = (function (_globalScope) {
 	Function.prototype.bind||(Function.prototype.bind=function(a){if(typeof this!=='function'){throw new TypeError('Function.prototype.bind - what is trying to be bound is not callable');}var b=[].slice,c='prototype',d=b.call(arguments,1),e=this,f=function(){},g=function(){return e.apply(this instanceof f?this:a,d.concat(b.call(arguments)))};if(this[c]){f[c]=this[c]}g[c]=new f();return g});
 	// Class helper definition
 	var $class = function () {
-		var args = [].slice.apply(arguments);
-		if (typeof (args[0]) == 'string') {
-			return $class._defineNamedClass(args[0], args.length > 1 ? args[1] : {});
+		var _args = [].slice.apply(arguments),
+			_constants = $class.Constants,
+			_defaultClassName = 'Class',
+			_result;
+		if (typeof (_args[0]) == 'string') {
+			return $class._defineNamedClass(_args[0], _args.length > 1 ? _args[1] : {});
 		} else {
-			return $class._defineClass(args[0], 'Class');
+			_result = $class._defineClass(_args[0], _defaultClassName);
+			_result[_constants.Namespace] = '';
+			_result[_constants.Fullname] = _defaultClassName;
+			return _result;
 		}
 	};
 	$class.Constants = {
@@ -50,6 +56,8 @@ Class = (function (_globalScope) {
 		'Static'			: 'Static',
 		'Constructor'		: 'Constructor',
 		'Name'				: 'Name',
+		'Namespace'			: 'Namespace',
+		'Fullname'			: 'Fullname',
 		'self'				: 'self',
 		'parent'			: 'parent'
 	};
@@ -81,7 +89,7 @@ Class = (function (_globalScope) {
 			if (!(_namePart in _currentScope)) {
 				throw new Error("Class '" + fullName + "' doesn't exist!");
 			}
-			_currentScope = _currentScope[_namePart];
+			_currentScope = _currentScope[_namePart] || {};
 		}
 		args.unshift(_currentScope);
 		return new (_currentScope.bind.apply(_currentScope, args))();
@@ -91,25 +99,26 @@ Class = (function (_globalScope) {
 	};
 	$class._defineNamedClass = function (fullName, cfg) {
 		var _explodedName = fullName.split('.'),
-			_name = _explodedName[_explodedName.length - 1],
+			_name = _explodedName.pop(),
 			_namePart = '',
 			_constants = $class.Constants,
 			_currentScope = _globalScope,
-			_selfStr = $class.Constants.self,
 			_result;
-		for (var i = 0, l = _explodedName.length - 1; i < l; i += 1) {
+		for (var i = 0, l = _explodedName.length; i < l; i += 1) {
 			_namePart = _explodedName[i];
 			if (!(_namePart in _currentScope)) {
 				_currentScope[_namePart] = {};
 			}
-			_currentScope = _currentScope[_namePart];
+			_currentScope = _currentScope[_namePart] || {};
 		}
 		if (cfg.toString === {}.toString) {
 			cfg.toString = function () {
-				return '[object ' + this[_constants.self][_constants.Name] + ']';
+				return '[object ' + fullName + ']';
 			}
 		}
 		_result = $class._defineClass(cfg, _name);
+		_result[_constants.Namespace] = _explodedName.join('.');
+		_result[_constants.Fullname] = fullName;
 		_currentScope[_name] = _result;
 		return _result;
 	};
@@ -162,11 +171,7 @@ Class = (function (_globalScope) {
 			_constructorStr = _constants.Constructor,
 			_instanceImprint = '';
 		if (_context === _globalScope) {
-			if (typeof (_cfg[_constructorStr]) == 'function') {
-				_cfg[_constructorStr].apply(_context, _args);
-			} else {
-				throw new Error("Class definition is not possible to call as function, it's necessary to create instance with 'new' keyword before class definition.");
-			}
+			$class._callConstructorNonInstance(_cfg, _context, _args, _constructorStr);
 		} else {
 			// fingerprint for dynamic parent calls
 			_instanceImprint = $class._completeInstanceImprint();
@@ -174,7 +179,18 @@ Class = (function (_globalScope) {
 			// define parent calls helper in dynamic methods in later binding here after instance is created - to work with 'this' context properly
 			$class._declareParentDynamicCalls(_context);
 			// call defined constructor
-			return _context[_constructorStr].apply(_context, _args);
+			if (typeof(_context[_constructorStr]) == 'function') {
+				return _context[_constructorStr].apply(_context, _args);
+			} else {
+				return _context;
+			}
+		}
+	};
+	$class._callConstructorNonInstance = function (_cfg, _context, _args, _constructorStr) {
+		if (typeof (_cfg[_constructorStr]) == 'function') {
+			_cfg[_constructorStr].apply(_context, _args);
+		} else {
+			throw new Error("Class definition is not possible to call as function, it's necessary to create instance with 'new' keyword before class definition.");
 		}
 	};
 	$class._completeClassImprint = function () {
@@ -205,7 +221,10 @@ Class = (function (_globalScope) {
 		}
 		_currentProto = classDefinition[_prototype];
 		for (_dynamicName in _currentProto) {
-			if (typeof (_currentProto[_dynamicName][_nameStr]) != 'string')
+			if (
+				typeof(_currentProto[_dynamicName]) == 'function' && 
+				typeof(_currentProto[_dynamicName][_nameStr]) != 'string'
+			)
 				_currentProto[_dynamicName][_nameStr] = _dynamicName;
 		}
 	};
@@ -218,7 +237,8 @@ Class = (function (_globalScope) {
 			for (_staticName in _cfgExtend) {
 				if (!($class._keywords[_staticName] === true)) {
 					classDefinition[_staticName] = _cfgExtend[_staticName];
-					classDefinition[_staticName][_nameStr] = _staticName;
+					if (typeof(_cfgExtend[_staticName]) == 'function') 
+						classDefinition[_staticName][_nameStr] = _staticName;
 				}
 			}
 		}
@@ -232,7 +252,8 @@ Class = (function (_globalScope) {
 		for (_dynamicName in cfg) {
 			if (!($class._keywords[_dynamicName] === true)) {
 				_classPrototype[_dynamicName] = cfg[_dynamicName];
-				_classPrototype[_dynamicName][_nameStr] = _dynamicName;
+				if (typeof(cfg[_dynamicName]) == 'function') 
+					_classPrototype[_dynamicName][_nameStr] = _dynamicName;
 			}
 		}
 		if (cfg[_constructor]) {
@@ -250,7 +271,8 @@ Class = (function (_globalScope) {
 			for (_staticName in _cfgStatic) {
 				if (!($class._keywords[_staticName] === true)) {
 					classDefinition[_staticName] = _cfgStatic[_staticName];
-					classDefinition[_staticName][_nameStr] = _staticName;
+					if (typeof(_cfgStatic[_staticName]) == 'function') 
+						classDefinition[_staticName][_nameStr] = _staticName;
 				}
 			}
 		}
