@@ -3,8 +3,8 @@
  * @author	Tom Flidr | tomflidr(at)gmail(dot)com
  * @url		https://github.com/tomFlidr/ajax.js
  * @licence	https://tomflidr.github.io/ajax.js/LICENSE.md
- * @version	1.0.12
- * @date	2022-31-10
+ * @version	1.0.11
+ * @date	2022-09-06
  * @example
  *
  *    var xhr = Ajax.load(<Ajax.cfg.Load>{
@@ -550,7 +550,9 @@
 					dataArr = [], 
 					dataStr = '',
 					w = window,
-					encoder = w.encodeURIComponent;
+					encoder = isGet
+						? encodeURIComponent
+						: function (a) { return a };
 				for (var key in data) {
 					if (typeof(data[key]) == 'object') {
 						dataStr = encoder(w.JSON.stringify(data[key]))

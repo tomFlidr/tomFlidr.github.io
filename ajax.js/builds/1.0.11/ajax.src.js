@@ -3,8 +3,8 @@
  * @author	Tom Flidr | tomflidr(at)gmail(dot)com
  * @url		https://github.com/tomFlidr/ajax.js
  * @licence	https://tomflidr.github.io/ajax.js/LICENSE.md
- * @version	1.0.12
- * @date	2022-31-10
+ * @version	1.0.11
+ * @date	2022-09-06
  * @example
  *
  *    var xhr = Ajax.load(<Ajax.cfg.Load>{
@@ -26,7 +26,7 @@
  */
 
 (function(globalVar){
-	globalVar.Ajax = globalVar.Ajax || (function(){
+	globalVar['Ajax'] = globalVar['Ajax'] || (function(){
 		/**
 		 * @typedef		JsonpRequest			JsonpRequest driving object.
 		 * @property	{string}	url			Full appended &lt;script&gt; tag src attribute value.
@@ -45,7 +45,7 @@
 		 * @access		public
 		 * @type		{object}
 		*/
-		Ajax.handlers = {
+		Ajax['handlers'] = {
 			'before': [],
 			'success': [],
 			'abort': [],
@@ -56,7 +56,7 @@
 		 * @access		public
 		 * @type		{object}
 		*/
-		Ajax.defaultHeaders = {
+		Ajax['defaultHeaders'] = {
 			'X-Requested-With': 'XmlHttpRequest',
 			'Content-Type': 'application/x-www-form-urlencoded'
 		};
@@ -65,13 +65,13 @@
 		 * @access		public
 		 * @type		{string}
 		*/
-		Ajax.jsonpCallbackParam = 'callback';
+		Ajax['jsonpCallbackParam'] = 'callback';
 		/**
 		 * @summary		Cache buster param name, default `_`.
 		 * @access		public
 		 * @type		{string}
 		*/
-		Ajax.cacheBusterParamName = '_';
+		Ajax['cacheBusterParamName'] = '_';
 		Ajax._scriptCallbackTmpl = 'JsonpCallback';
 		Ajax._requestCounter = 0;
 		/**
@@ -82,8 +82,8 @@
 		 * 
 		 * @return		{Ajax}		Ajax library definition.
 		*/
-		Ajax.beforeLoad = function (callback) {
-			Ajax.handlers.before.push(callback);
+		Ajax['beforeLoad'] = function (callback) {
+			Ajax['handlers']['before'].push(callback);
 			return Ajax;
 		};
 		/**
@@ -94,8 +94,8 @@
 		 * 
 		 * @return		{Ajax}		Ajax library definition.
 		*/
-		Ajax.onSuccess = function (callback) {
-			Ajax.handlers.success.push(callback);
+		Ajax['onSuccess'] = function (callback) {
+			Ajax['handlers']['success'].push(callback);
 			return Ajax;
 		};
 		/**
@@ -106,8 +106,8 @@
 		 * 
 		 * @return		{Ajax}		Ajax library definition.
 		*/
-		Ajax.onAbort = function (callback) {
-			Ajax.handlers.abort.push(callback);
+		Ajax['onAbort'] = function (callback) {
+			Ajax['handlers']['abort'].push(callback);
 			return Ajax;
 		};
 		/**
@@ -118,8 +118,8 @@
 		 * 
 		 * @return		{Ajax}		Ajax library definition.
 		*/
-		Ajax.onError = function (callback) {
-			Ajax.handlers.error.push(callback);
+		Ajax['onError'] = function (callback) {
+			Ajax['handlers']['error'].push(callback);
 			return Ajax;
 		};
 		/**
@@ -137,7 +137,7 @@
 		 * 
 		 * @return		{XMLHttpRequest|JsonpRequest}		Build in browser request object or JsonpRequest if JSONP request.
 		*/
-		Ajax.get = function () {
+		Ajax['get'] = function () {
 			var ajax = new Ajax();
 			return ajax._init.apply(ajax, [].slice.apply(arguments))._processRequest();
 		};
@@ -156,7 +156,7 @@
 		 * 
 		 * @return		{XMLHttpRequest}			Build in browser request object.
 		*/
-		Ajax.post = function () {
+		Ajax['post'] = function () {
 			var ajax = new Ajax();
 			return ajax._init.apply(ajax, [].slice.apply(arguments))._processRequest('post');
 		};
@@ -183,7 +183,7 @@
 		 *
 		 * @return		{XMLHttpRequest|JsonpRequest}	Build in browser request object or JsonpRequest if JSONP request.
 		*/
-		Ajax.load = function (cfg) {
+		Ajax['load'] = function (cfg) {
 			/// <signature>
 			///		<summary>Process background request by config.</summary>
 			///		<param name="cfg" type="RequestConfig">Put JS object to process background GET/POST/JSONP request by config. Required property: url:string.</param>
@@ -191,10 +191,10 @@
 			/// </signature>
 			var ajax = new Ajax();
 			return ajax._init(
-				cfg.url, cfg.data, cfg.success, cfg.type, cfg.error, cfg.headers, cfg.cache, cfg.async
-			)._processRequest(cfg.method);
+				cfg['url'], cfg['data'], cfg['success'], cfg['type'], cfg['error'], cfg['headers'], cfg['cache'], cfg['async']
+			)._processRequest(cfg['method']);
 		};
-		Ajax.prototype = {
+		Ajax['prototype'] = {
 			'toString': function () {
 				return '[object Ajax]';
 			},
@@ -238,7 +238,7 @@
 				///		<returns type="JsonpRequest">JSONP driving object.</returns>
 				/// </signature>
 				var scope = this,
-					scriptElm = document.createElement('script'),
+					scriptElm = document['createElement']('script'),
 					headElm = scope._getScriptContainerElement();
 				scope.scriptElm = scriptElm;
 				scope.requestId = Ajax._requestCounter++;
@@ -247,15 +247,15 @@
 					scope._handlerScriptRequestSuccess(data);
 				};
 				scope._completeUriAndGetParams('get', !0);
-				scriptElm.setAttribute('src', scope.url);
+				scriptElm['setAttribute']('src', scope.url);
 				scope._callBeforeHandlers();
 				if (scope.oldIe) {
 					scriptElm.attachEvent('onreadystatechange', scope._handlerProviderScriptRequestError());
-					scriptElm = headElm.insertAdjacentElement('beforeEnd', scriptElm);
+					scriptElm = headElm['insertAdjacentElement']('beforeEnd', scriptElm);
 				} else {
 					scriptElm.setAttribute('async', 'async');
 					scriptElm.addEventListener('error', scope._handlerProviderScriptRequestError(), !0);
-					scriptElm = headElm.appendChild(scriptElm);
+					scriptElm = headElm['appendChild'](scriptElm);
 				}
 				var result = {
 					/**
@@ -316,7 +316,7 @@
 			},
 			_handlerScriptRequestCleanUp: function () {
 				var scope = this;
-				scope.scriptElm.parentNode.removeChild(scope.scriptElm);
+				scope.scriptElm['parentNode']['removeChild'](scope.scriptElm);
 				if (scope.oldIe) {
 					Ajax[scope.callbackName] = undefined;
 				} else {
@@ -330,7 +330,7 @@
 				scope.requestId = Ajax._requestCounter++;
 				scope.xhr = scope._createXhrInstance();
 				scope._processXhrRequestAddListener();
-				scope.xhr.open(method, scope.url, scope.async);
+				scope.xhr['open'](method, scope.url, scope.async);
 				scope._setUpHeaders();
 				scope._callBeforeHandlers();
 				scope._processXhrRequestSend(method, paramsStr);
@@ -341,20 +341,20 @@
 					xhr = scope.xhr,
 					eventName = 'readystatechange',
 					handler = function (e) {
-						if (xhr.readyState == 4) {
+						if (xhr['readyState'] == 4) {
 							scope._handlerXhrRequestReadyStatechange(e);
 						}
 					};
 				if (scope.oldIe) {
-					scope.xhr.attachEvent('on'+eventName, handler);
+					scope.xhr['attachEvent']('on'+eventName, handler);
 				} else {
-					scope.xhr.addEventListener(eventName, handler);
+					scope.xhr['addEventListener'](eventName, handler);
 				}
 			},
 			_handlerXhrRequestReadyStatechange: function (e) {
 				e = e || window.event;
 				var scope = this,
-					statusCode = scope.xhr.status;
+					statusCode = scope.xhr['status'];
 				if (statusCode > 199 && statusCode < 300){
 					scope._processXhrResult();
 					scope._processXhrCallbacks();
@@ -370,9 +370,9 @@
 			_processXhrRequestSend: function (method, paramsStr) {
 				var xhr = this.xhr;
 				if (method == 'get') {
-					xhr.send();
+					xhr['send']();
 				} else if (method == 'post') {
-					xhr.send(paramsStr);
+					xhr['send'](paramsStr);
 				}
 			},
 			_processXhrCallbacks: function (e) {
@@ -381,14 +381,14 @@
 					args = [];
 				if (scope.result.success) {
 					args = [
-						scope.result.data, xhr.status, xhr, 
+						scope.result.data, xhr['status'], xhr, 
 						scope.requestId, scope.url, scope.type
 					];
 					scope.success.apply(null, args);
 					scope._callSuccessHandlers();
 				} else {
 					args = [
-						xhr.responseText, xhr.status, xhr, 
+						xhr['responseText'], xhr['status'], xhr, 
 						scope.errorEvent, scope.errorObject, 
 						scope.requestId, scope.url, scope.type
 					];
@@ -410,7 +410,7 @@
 				} else if (scope.type == 'xml' || scope.type == 'html') {
 					scope._processXhrResultXml();
 				} else if (scope.type == 'text') {
-					scope.result.data = xhr.responseText;
+					scope.result.data = xhr['responseText'];
 					scope.result.success = !0;
 				}
 			},
@@ -432,10 +432,10 @@
 			_processXhrResultJson: function () {
 				var win = window, 
 					scope = this,
-					responseText = scope.xhr.responseText;
-				if(!win.JSON) scope._declareJson();
+					responseText = scope.xhr['responseText'];
+				if(!win['JSON']) scope._declareJson();
 				try {
-					scope.result.data = win.JSON.parse(responseText);
+					scope.result.data = win['JSON']['parse'](responseText);
 					scope.result.success = !0;
 				} catch (e1) {
 					try {
@@ -449,16 +449,16 @@
 				var parser = {}, 
 					win = window, 
 					scope = this,
-					responseText = scope.xhr.responseText,
-					DomParser = win.DOMParser;
+					responseText = scope.xhr['responseText'],
+					DomParser = win['DOMParser'];
 				try {
 					if (DomParser) {
 						parser = new DomParser();
-						scope.result.data = parser.parseFromString(responseText, "application/xml");
+						scope.result.data = parser['parseFromString'](responseText, "application/xml");
 					} else {
-						parser = new win.ActiveXObject('Microsoft.XMLDOM');
-						parser.async = !1;
-						scope.result.data = parser.loadXML(responseText);
+						parser = new win['ActiveXObject']('Microsoft.XMLDOM');
+						parser['async'] = !1;
+						scope.result.data = parser['loadXML'](responseText);
 					}
 					scope.result.success = !0;
 				} catch (e) {
@@ -473,7 +473,7 @@
 			},
 			_getCompleteContentTypeHeader: function () {
 				var scope = this,
-					contentType = scope.xhr.getResponseHeader("Content-Type"),
+					contentType = scope.xhr['getResponseHeader']("Content-Type"),
 					semicolPos = contentType.indexOf(';');
 				contentType = contentType.length > 0 ? contentType.toLowerCase() : '';
 				if (semicolPos > -1) contentType = contentType.substr(0, semicolPos);
@@ -483,12 +483,12 @@
 				var xhrInstance,
 					win = window,
 					activeXObjTypes = ['Msxml2.XMLHTTP.6.0', 'Msxml2.XMLHTTP.3.0', 'Msxml2.XMLHTTP', 'Microsoft.XMLHTTP'];
-				if (win.XMLHttpRequest) {
-					xhrInstance = new win.XMLHttpRequest();
+				if (win['XMLHttpRequest']) {
+					xhrInstance = new win['XMLHttpRequest']();
 				} else {
 					for (var i = 0, l = activeXObjTypes.length; i < l; i += 1) {
 						try{
-							xhrInstance = new win.ActiveXObject(activeXObjTypes[i]);
+							xhrInstance = new win['ActiveXObject'](activeXObjTypes[i]);
 						} catch (e) {};
 					};
 				}
@@ -498,13 +498,13 @@
 				var scope = this,
 					xhr = scope.xhr,
 					configuredHeaders = scope.headers,
-					defaultHeaders = Ajax.defaultHeaders;
+					defaultHeaders = Ajax['defaultHeaders'];
 				for (var headerName in configuredHeaders) {
-					xhr.setRequestHeader(headerName, configuredHeaders[headerName]);
+					xhr['setRequestHeader'](headerName, configuredHeaders[headerName]);
 				}
 				for (headerName in defaultHeaders) {
 					if (configuredHeaders[headerName]) continue;
-					xhr.setRequestHeader(headerName, defaultHeaders[headerName]);
+					xhr['setRequestHeader'](headerName, defaultHeaders[headerName]);
 				}
 			},
 			_completeUriAndGetParams: function (method, jsonp) {
@@ -527,9 +527,9 @@
 					dataStr = scope._completeDataString(!1);
 				}
 				if (!scope.cache)
-					url += amp + Ajax.cacheBusterParamName + eq + (+new Date);
+					url += amp + Ajax['cacheBusterParamName'] + eq + (+new Date);
 				if (jsonp)
-					url += amp + Ajax.jsonpCallbackParam + eq + scope._getLibraryName() + '.' + scope.callbackName;
+					url += amp + Ajax['jsonpCallbackParam'] + eq + scope._getLibraryName() + '.' + scope.callbackName;
 				scope.url = url;
 				return dataStr;
 			},
@@ -540,7 +540,7 @@
 				if (typeof(data) == 'string') {
 					return data;
 				} else {
-					if(!w.JSON) scope._declareJson();
+					if(!w['JSON']) scope._declareJson();
 					return this._stringifyDataObject(isGet);
 				}
 			},
@@ -550,10 +550,12 @@
 					dataArr = [], 
 					dataStr = '',
 					w = window,
-					encoder = w.encodeURIComponent;
+					encoder = isGet
+						? encodeURIComponent
+						: function (a) { return a };
 				for (var key in data) {
 					if (typeof(data[key]) == 'object') {
-						dataStr = encoder(w.JSON.stringify(data[key]))
+						dataStr = encoder(w['JSON']['stringify'](data[key]))
 					} else {
 						dataStr = encoder(data[key].toString());
 					}
@@ -563,7 +565,7 @@
 			},
 			_declareJson: function () {
 				// include json2
-				window.JSON=function(){function f(n){return n<10?'0'+n:n;}
+				window['JSON']=function(){function f(n){return n<10?'0'+n:n;}
 				Date.prototype.toJSON=function(){return this.getUTCFullYear()+'-'+
 				f(this.getUTCMonth()+1)+'-'+
 				f(this.getUTCDate())+'T'+
@@ -583,11 +585,11 @@
 				throw new SyntaxError('parseJSON');}};}();
 			},
 			_getScriptContainerElement: function () {
-				var headElm = document.body;
+				var headElm = document['body'];
 				while (true) {
-					if (headElm.previousSibling === null || headElm.previousSibling === undefined) break;
-					headElm = headElm.previousSibling;
-					if (headElm.nodeName.toLowerCase() == 'head') break;
+					if (headElm['previousSibling'] === null || headElm['previousSibling'] === undefined) break;
+					headElm = headElm['previousSibling'];
+					if (headElm['nodeName']['toLowerCase']() == 'head') break;
 				}
 				return headElm;
 			},
@@ -608,7 +610,7 @@
 					'success', 
 					scope.type == 'jsonp' 
 						? [data, 200, null] 
-						: [data, xhr.status, xhr]
+						: [data, xhr['status'], xhr]
 				);
 			},
 			_callAbortHandlers: function () {
@@ -626,11 +628,11 @@
 					'error', 
 					scope.type == 'jsonp' 
 						? ['', 0, null, null, scope.errorEvent] 
-						: [xhr.responseText, xhr.status, xhr, scope.errorObj, null]
+						: [xhr['responseText'], xhr['status'], xhr, scope.errorObj, null]
 				);
 			},
 			_callHandlers: function (handlersKey, args) {
-				var handlers = Ajax.handlers[handlersKey],
+				var handlers = Ajax['handlers'][handlersKey],
 					scope = this,
 					handler = function () {},
 					additionalArgs = [];
@@ -651,11 +653,11 @@
 					errorObj = scope.errorObject,
 					errorEvent = scope.errorEvent,
 					xhr = scope.xhr;
-				if (!win.console) return;
+				if (!win['console']) return;
 				if (jsonp) {
-					win.console.log(id, url, type, 0, errorEvent);
+					win['console']['log'](id, url, type, 0, errorEvent);
 				} else {
-					win.console.log(id, url, type, xhr, xhr.status, xhr.responseText, errorObj, errorObj.stack);
+					win['console']['log'](id, url, type, xhr, xhr['status'], xhr['responseText'], errorObj, errorObj['stack']);
 				}
 			},
 			_getLibraryName: function () {

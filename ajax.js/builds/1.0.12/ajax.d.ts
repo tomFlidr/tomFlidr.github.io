@@ -3,8 +3,8 @@
  * @author	Tom Flidr | tomflidr(at)gmail(dot)com
  * @url		https://github.com/tomFlidr/ajax.js
  * @licence	https://tomflidr.github.io/ajax.js/LICENCE.txt
- * @version	1.0.11
- * @date	2022-09-06
+ * @version	1.0.12
+ * @date	2022-10-31
  * @example
  *
  *    var xhr = Ajax.load(<Ajax.cfg.Load>{
